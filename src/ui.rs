@@ -10,7 +10,7 @@ use webbrowser::Browser;
 
 use crate::thok::{Outcome, Thok};
 
-const HORIZONTAL_MARGIN: u16 = 5;
+pub const HORIZONTAL_MARGIN: u16 = 5;
 const VERTICAL_MARGIN: u16 = 2;
 
 impl Widget for &Thok {
@@ -36,14 +36,13 @@ impl Widget for &Thok {
         match !self.has_finished() {
             true => {
                 let max_chars_per_line = area.width - (HORIZONTAL_MARGIN * 2);
-                let mut prompt_occupied_lines =
-                    ((self.prompt.width() as f64 / max_chars_per_line as f64).ceil() + 1.0) as u16;
+                let prompt_occupied_lines = if self.prompt.width() <= max_chars_per_line as usize {
+                    1
+                } else {
+                    3
+                };
 
                 let time_left_lines = if self.number_of_secs.is_some() { 2 } else { 0 };
-
-                if self.prompt.width() <= max_chars_per_line as usize {
-                    prompt_occupied_lines = 1;
-                }
 
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
@@ -51,24 +50,30 @@ impl Widget for &Thok {
                     .constraints(
                         [
                             Constraint::Length(
-                                ((area.height as f64 - prompt_occupied_lines as f64) / 2.0) as u16,
+                                ((area.height as f64
+                                    - prompt_occupied_lines as f64
+                                    - time_left_lines as f64)
+                                    / 2.0) as u16,
                             ),
                             Constraint::Length(time_left_lines),
                             Constraint::Length(prompt_occupied_lines),
                             Constraint::Length(
-                                ((area.height as f64 - prompt_occupied_lines as f64) / 2.0) as u16,
+                                ((area.height as f64
+                                    - prompt_occupied_lines as f64
+                                    - time_left_lines as f64)
+                                    / 2.0) as u16,
                             ),
                         ]
                         .as_ref(),
                     )
                     .split(area);
-
                 let mut spans = self
                     .input
                     .iter()
+                    .skip(self.skip_curr)
                     .enumerate()
                     .map(|(idx, input)| {
-                        let expected = self.get_expected_char(idx).to_string();
+                        let expected = self.get_expected_char(self.skip_curr + idx).to_string();
 
                         match input.outcome {
                             Outcome::Incorrect => Span::styled(

@@ -22,6 +22,7 @@ use tui::{
     backend::{Backend, CrosstermBackend},
     Frame, Terminal,
 };
+use ui::HORIZONTAL_MARGIN;
 use webbrowser::Browser;
 
 const TICK_RATE_MS: u64 = 100;
@@ -177,7 +178,6 @@ fn start_tui<B: Backend>(
     loop {
         let mut exit_type: ExitType = ExitType::Quit;
         terminal.draw(|f| ui(app, f))?;
-
         loop {
             let app = &mut app;
 
@@ -307,5 +307,7 @@ fn get_thok_events(should_tick: bool) -> mpsc::Receiver<ThokEvent> {
 }
 
 fn ui<B: Backend>(app: &mut App, f: &mut Frame<B>) {
+    app.thok
+        .update_skip_count((f.size().width - HORIZONTAL_MARGIN * 2).into());
     f.render_widget(&app.thok, f.size());
 }
